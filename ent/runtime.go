@@ -28,5 +28,19 @@ func init() {
 	// bookDescPublishYear is the schema descriptor for publish_year field.
 	bookDescPublishYear := bookFields[3].Descriptor()
 	// book.PublishYearValidator is a validator for the "publish_year" field. It is called by the builders before save.
-	book.PublishYearValidator = bookDescPublishYear.Validators[0].(func(int) error)
+	book.PublishYearValidator = func() func(int) error {
+		validators := bookDescPublishYear.Validators
+		fns := [...]func(int) error{
+			validators[0].(func(int) error),
+			validators[1].(func(int) error),
+		}
+		return func(publish_year int) error {
+			for _, fn := range fns {
+				if err := fn(publish_year); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 }
